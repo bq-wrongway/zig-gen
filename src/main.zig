@@ -22,6 +22,7 @@ pub fn main() !void {
     try generatePass(15, final_char_list);
 }
 
+// randomizes password character
 fn generatePass(length: u32, char_list: []u8) !void {
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
