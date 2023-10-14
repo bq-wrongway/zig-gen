@@ -44,6 +44,7 @@ fn generatePass(length: u32, char_list: []u8) !void {
     defer allocator.free(final_pass);
 }
 
+// parameters have to be determened by the user, using zig clap probably
 fn passwordCharPool(uppercase: bool, special: bool, numeric: bool) ![]u8 {
     defer list.deinit();
     defer pass_list.deinit();
