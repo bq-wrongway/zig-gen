@@ -28,7 +28,7 @@ pub fn main() !void {
         \\-u, --uppercase        Excludes uppercase letters in password generation
         \\-s, --symbols          Excludes special symbols for password generation
         \\-n, --nummeric         Excludes numbers for password generation
-        \\-g, --generate         Generates a password with default parameters
+        \\-w, --write            Saves password to a file (maybe defined in .config or passed as arg <STR>)
     );
 
     //possible toggles and parameters
@@ -63,14 +63,11 @@ pub fn main() !void {
         is_nummeric = false;
     if (res.args.uppercase != 0)
         is_uppercase = false;
-    if (res.args.generate != 0) {
-        const final_char_list = try passwordCharPool(is_uppercase, is_special, is_nummeric);
-        try generatePass(password_length, final_char_list);
-    } else {
-        try stderr.print("You need to pass -g flag to generate a password!Check --help for more info!\n", .{});
-    }
+    if (res.args.write != 0)
+        print("I will save to file in future with custom name for the password field", .{});
 
-    return;
+    const final_char_list = try passwordCharPool(is_uppercase, is_special, is_nummeric);
+    try generatePass(password_length, final_char_list);
 }
 
 // randomizes password character
