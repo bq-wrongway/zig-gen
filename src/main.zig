@@ -72,8 +72,9 @@ pub fn main() !u8 {
     if (res.args.generate != 0) {
         const final_char_list = try passwordCharPool(is_uppercase, is_special, is_nummeric);
         try generatePass(password_length, final_char_list);
-    } else {
-        try stdout_writer.print("You need to pass -g flag to generate a password", .{});
+    }
+    if (res.args.help == 0 and res.args.generate == 0) {
+        try stderr.print("You need to pass -g flag to generate a password!Check --help for more info!\n", .{});
     }
 
     return 0;
@@ -96,12 +97,11 @@ fn generatePass(length: u32, char_list: []u8) !void {
     }
     const final_pass = try pass_list.toOwnedSlice();
 
-    print("{!s}\n", .{final_pass});
+    try stdout_writer.print("{!s}\n", .{final_pass});
     defer allocator.free(char_list);
     defer allocator.free(final_pass);
 }
 
-// parameters have to be determened by the user, using zig clap probably
 fn passwordCharPool(uppercase: bool, special: bool, numeric: bool) ![]u8 {
     defer list.deinit();
     defer pass_list.deinit();
@@ -110,7 +110,6 @@ fn passwordCharPool(uppercase: bool, special: bool, numeric: bool) ![]u8 {
         try list.appendSlice(special_chars);
         const new_pass = try pass_list.toOwnedSlice();
 
-        print("{!s}\n", .{new_pass});
         defer allocator.free(new_pass);
     }
     if (numeric) {
