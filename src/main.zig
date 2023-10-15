@@ -54,7 +54,7 @@ pub fn main() !void {
     defer _ = gpa.deinit();
 
     if (res.args.help != 0)
-        return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{}); // try stdout_writer.print("{s}\n", .{help_text});
+        return clap.help(stderr, clap.Help, &params, .{});
     if (res.args.symbols != 0)
         is_special = false;
     if (res.args.length) |l|
