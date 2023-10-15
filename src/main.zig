@@ -1,14 +1,23 @@
 const std = @import("std");
 const clap = @import("clap");
+
 const print = std.debug.print;
 const io = std.io;
 const stdout_writer = std.io.getStdOut().writer();
+const stderr = std.io.getStdErr().writer();
 
 //constant values to create random strings, divided by categories
 const numbers = "0123456789";
 const special_chars = "!@#$%^&*()_+?></.,\\][";
 const letters_lowercase = "aqwertyuiopsdfghjklzxcvbnm";
 const letters_uppercase = "AQWERTYUIOPSDFGHJKLZXCVBNM";
+const help_text =
+    \\Display this help and exit.                       
+    \\Sets password length, default is 15              
+    \\Excludes uppercase letters in password generation
+    \\Excludes special symbols for password generation 
+    \\Excludes numbers for password generation
+;
 
 //gpa perhaps another allocater makes more sense ?
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -19,14 +28,16 @@ const ArrayList = std.ArrayList;
 var list = ArrayList(u8).init(allocator);
 var pass_list = ArrayList(u8).init(allocator);
 
-pub fn main() !void {
+pub fn main() !u8 {
     const params = comptime clap.parseParamsComptime(
         \\-h, --help             Display this help and exit.                                   
         \\-l, --length <INT>     Sets password length, default is 15              
         \\-u, --uppercase        Excludes uppercase letters in password generation
         \\-s, --symbols          Excludes special symbols for password generation 
-        \\-n, --nummeric         Excludes numbers for password generation          
+        \\-n, --nummeric         Excludes numbers for password generation
+        \\-g, --generate         Generates a password with default parameters              
     );
+
     //possible toggles and parameters
     var is_special: bool = true;
     var is_nummeric: bool = true;
@@ -37,26 +48,16 @@ pub fn main() !void {
         .INT = clap.parsers.int(usize, 10),
     };
 
-    // Initialize our diagnostics, which can be used for reporting useful errors.
-    // This is optional. You can also pass `.{}` to `clap.parse` if you don't
-    // care about the extra information `Diagnostics` provides.
     var diag = clap.Diagnostic{};
     var res = clap.parse(clap.Help, &params, parsers, .{
         .diagnostic = &diag,
     }) catch |err| {
-        // Report useful error and exit
-        diag.report(io.getStdErr().writer(), err) catch {};
-        return err;
+        diag.report(stderr, err) catch {};
+        try stderr.print("You passed invalid character.Use --help to see more info.\n", .{});
+        return 1;
     };
     defer res.deinit();
-
-    const help_text =
-        \\Display this help and exit.                       
-        \\Sets password length, default is 15              
-        \\Excludes uppercase letters in password generation
-        \\Excludes special symbols for password generation 
-        \\Excludes numbers for password generation
-    ;
+    defer _ = gpa.deinit();
 
     if (res.args.help != 0)
         try stdout_writer.print("{s}\n", .{help_text});
@@ -68,11 +69,14 @@ pub fn main() !void {
         is_nummeric = false;
     if (res.args.uppercase != 0)
         is_uppercase = false;
+    if (res.args.generate != 0) {
+        const final_char_list = try passwordCharPool(is_uppercase, is_special, is_nummeric);
+        try generatePass(password_length, final_char_list);
+    } else {
+        try stdout_writer.print("You need to pass -g flag to generate a password", .{});
+    }
 
-    defer _ = gpa.deinit();
-
-    const final_char_list = try passwordCharPool(is_uppercase, is_special, is_nummeric);
-    try generatePass(password_length, final_char_list);
+    return 0;
 }
 
 // randomizes password character

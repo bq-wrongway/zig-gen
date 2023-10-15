@@ -23,8 +23,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
-    // This declares intent for the executable to be installed into the
+    const clap = b.dependency("clap", .{});
+    exe.addModule("clap", clap.module("clap")); // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
     b.installArtifact(exe);
@@ -67,7 +67,4 @@ pub fn build(b: *std.Build) void {
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
-
-    const clap = b.dependency("clap", .{});
-    exe.addModule("clap", clap.module("clap"));
 }
