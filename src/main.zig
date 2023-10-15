@@ -11,13 +11,6 @@ const numbers = "0123456789";
 const special_chars = "!@#$%^&*()_+?></.,\\][";
 const letters_lowercase = "aqwertyuiopsdfghjklzxcvbnm";
 const letters_uppercase = "AQWERTYUIOPSDFGHJKLZXCVBNM";
-const help_text =
-    \\Display this help and exit.                       
-    \\Sets password length, default is 15              
-    \\Excludes uppercase letters in password generation
-    \\Excludes special symbols for password generation 
-    \\Excludes numbers for password generation
-;
 
 //gpa perhaps another allocater makes more sense ?
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -28,14 +21,14 @@ const ArrayList = std.ArrayList;
 var list = ArrayList(u8).init(allocator);
 var pass_list = ArrayList(u8).init(allocator);
 
-pub fn main() !u8 {
+pub fn main() !void {
     const params = comptime clap.parseParamsComptime(
-        \\-h, --help             Display this help and exit.                                   
-        \\-l, --length <INT>     Sets password length, default is 15              
+        \\-h, --help             Display this help and exit.
+        \\-l, --length <INT>     Sets password length, default is 15
         \\-u, --uppercase        Excludes uppercase letters in password generation
-        \\-s, --symbols          Excludes special symbols for password generation 
+        \\-s, --symbols          Excludes special symbols for password generation
         \\-n, --nummeric         Excludes numbers for password generation
-        \\-g, --generate         Generates a password with default parameters              
+        \\-g, --generate         Generates a password with default parameters
     );
 
     //possible toggles and parameters
@@ -53,14 +46,15 @@ pub fn main() !u8 {
         .diagnostic = &diag,
     }) catch |err| {
         diag.report(stderr, err) catch {};
+        // print("{}", .{@TypeOf(err)});
         try stderr.print("You passed invalid character.Use --help to see more info.\n", .{});
-        return 1;
+        return;
     };
     defer res.deinit();
     defer _ = gpa.deinit();
 
     if (res.args.help != 0)
-        try stdout_writer.print("{s}\n", .{help_text});
+        return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{}); // try stdout_writer.print("{s}\n", .{help_text});
     if (res.args.symbols != 0)
         is_special = false;
     if (res.args.length) |l|
@@ -72,12 +66,11 @@ pub fn main() !u8 {
     if (res.args.generate != 0) {
         const final_char_list = try passwordCharPool(is_uppercase, is_special, is_nummeric);
         try generatePass(password_length, final_char_list);
-    }
-    if (res.args.help == 0 and res.args.generate == 0) {
+    } else {
         try stderr.print("You need to pass -g flag to generate a password!Check --help for more info!\n", .{});
     }
 
-    return 0;
+    return;
 }
 
 // randomizes password character
