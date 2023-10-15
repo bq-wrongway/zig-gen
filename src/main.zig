@@ -2,7 +2,7 @@ const std = @import("std");
 const clap = @import("clap");
 const print = std.debug.print;
 const io = std.io;
-const printf = std.io.getStdOut().writer();
+const stdout_writer = std.io.getStdOut().writer();
 
 //constant values to create random strings, divided by categories
 const numbers = "0123456789";
@@ -59,7 +59,7 @@ pub fn main() !void {
     ;
 
     if (res.args.help != 0)
-        printf("{s}\n", .{help_text});
+        try stdout_writer.print("{s}\n", .{help_text});
     if (res.args.symbols != 0)
         is_special = false;
     if (res.args.length) |l|
