@@ -101,6 +101,7 @@ fn generatePass(length: u32, char_list: []u8) !void {
     defer allocator.free(final_pass);
 }
 
+// adds characters to the password based on user toggle
 fn passwordCharPool(uppercase: bool, special: bool, numeric: bool) ![]u8 {
     defer list.deinit();
     if (special) {
@@ -116,4 +117,9 @@ fn passwordCharPool(uppercase: bool, special: bool, numeric: bool) ![]u8 {
         try list.appendSlice(letters_uppercase);
     }
     return try list.toOwnedSlice();
+}
+
+fn saveToFile() void {
+    // to be implemented, this function should save password under key value file,
+    // perhaps file could be encrypted somehow in the future, (to simulate somewhat of vault behaviour)
 }
