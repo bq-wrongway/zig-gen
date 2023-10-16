@@ -22,6 +22,16 @@ var list = ArrayList(u8).init(allocator);
 var pass_list = ArrayList(u8).init(allocator);
 
 pub fn main() !void {
+    //possible toggles and parameters with their default values, user can ofcourse override this
+    var is_special: bool = true;
+    var is_nummeric: bool = true;
+    var is_uppercase: bool = true;
+    var password_length: u32 = 15;
+    //adding lowercase letter right away since they are not optionals
+    try list.appendSlice(letters_lowercase);
+    //freeing memory of the password list, this should be freed either way at the program exit (at least what i think atm)
+    defer pass_list.deinit();
+
     const params = comptime clap.parseParamsComptime(
         \\-h, --help             Display this help and exit.
         \\-l, --length <INT>     Sets password length, default is 15
@@ -31,16 +41,13 @@ pub fn main() !void {
         \\-w, --write            Saves password to a file (maybe defined in .config or passed as arg <STR>)
     );
 
-    //possible toggles and parameters
-    var is_special: bool = true;
-    var is_nummeric: bool = true;
-    var is_uppercase: bool = true;
-    var password_length: u32 = 15;
     const parsers = comptime .{
         .STR = clap.parsers.string,
         .INT = clap.parsers.int(usize, 10),
     };
-
+    //diagnostic provided by zig-clap, need to improve error handling
+    //(when i get wrong parameter should result in one error, but getting wrong parameter value)
+    //should result in another error (ie, when i get float instead of int for length)
     var diag = clap.Diagnostic{};
     var res = clap.parse(clap.Help, &params, parsers, .{
         .diagnostic = &diag,
@@ -50,9 +57,10 @@ pub fn main() !void {
         try stderr.print("You passed invalid character.Use --help to see more info.\n", .{});
         return;
     };
+    //freeing memory
     defer res.deinit();
     defer _ = gpa.deinit();
-
+    //matching possible parameters
     if (res.args.help != 0)
         return clap.help(stderr, clap.Help, &params, .{});
     if (res.args.symbols != 0)
@@ -67,6 +75,7 @@ pub fn main() !void {
         print("I will save to file in future with custom name for the password field", .{});
 
     const final_char_list = try passwordCharPool(is_uppercase, is_special, is_nummeric);
+    //i would like generate pass to return the u8 instead of void, but i get volatile asm error when attempting that
     try generatePass(password_length, final_char_list);
 }
 
@@ -94,8 +103,6 @@ fn generatePass(length: u32, char_list: []u8) !void {
 
 fn passwordCharPool(uppercase: bool, special: bool, numeric: bool) ![]u8 {
     defer list.deinit();
-    defer pass_list.deinit();
-    try list.appendSlice(letters_lowercase);
     if (special) {
         try list.appendSlice(special_chars);
         const new_pass = try pass_list.toOwnedSlice();
