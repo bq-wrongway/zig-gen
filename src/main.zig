@@ -19,21 +19,11 @@ const allocator = gpa.allocator();
 const ArrayList = std.ArrayList;
 
 var character_pool_list = ArrayList(u8).init(allocator);
-var password = ArrayList(u8).init(allocator);
+var password_list = ArrayList(u8).init(allocator);
 
-const Params = struct {
-    is_special: bool,
-    is_nummeric: bool,
-    is_uppercase: bool,
-    password_length: u32,
-};
-//possible toggles and parameters with their default values, user can ofcourse override this
-var p = Params{
-    .is_special = true,
-    .is_nummeric = true,
-    .is_uppercase = true,
-    .password_length = 15,
-};
+const Params = struct { is_special: bool, is_nummeric: bool, is_uppercase: bool, password_length: u32 };
+
+var p = Params{ .is_special = true, .is_nummeric = true, .is_uppercase = true, .password_length = 15 };
 
 pub fn main() !void {
     //adding lowercase letter right away since they are not optionals
@@ -79,19 +69,19 @@ pub fn main() !void {
     if (res.args.write != 0)
         print("I will save to file in future with custom name for the password field", .{});
 
-    const final_char_list = try passwordCharPool(p.is_uppercase, p.is_special, p.is_nummeric);
-    const mypas = try generatePass(p.password_length, final_char_list);
+    const final_char_pool_list = try passwordCharPool(p.is_uppercase, p.is_special, p.is_nummeric);
+    const password = try generatePass(p.password_length, final_char_pool_list);
 
     //freeing memory
     defer {
-        password.deinit();
-        allocator.free(mypas);
-        allocator.free(final_char_list);
+        password_list.deinit();
+        allocator.free(password);
+        allocator.free(final_char_pool_list);
         res.deinit();
         _ = gpa.deinit();
     }
 
-    try stdout_writer.print("{s}\n", .{mypas});
+    try stdout_writer.print("{s}\n", .{password});
 }
 
 // randomizes password character
@@ -106,11 +96,11 @@ fn generatePass(length: u32, char_list: []u8) ![]u8 {
     var i: usize = 0;
     while (i < length) {
         var num = rand.intRangeAtMost(u8, 0, @as(u8, @intCast(char_list.len)) - 1);
-        try password.append(char_list[num]);
+        try password_list.append(char_list[num]);
         i += 1;
     }
 
-    return password.toOwnedSlice();
+    return password_list.toOwnedSlice();
 }
 
 // adds characters to the password based on user toggle
