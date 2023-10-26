@@ -1,11 +1,10 @@
 const std = @import("std");
 const clap = @import("clap");
-
 const print = std.debug.print;
+const fs = @import("fs.zig");
 const io = std.io;
 const stdout_writer = std.io.getStdOut().writer();
 const stderr = std.io.getStdErr().writer();
-
 //constant values to create random strings, divided by categories
 const numbers = "0123456789";
 const special_chars = "!@#$%^&*()_+?></.,\\][";
@@ -15,7 +14,6 @@ const letters_uppercase = "AQWERTYUIOPSDFGHJKLZXCVBNM";
 //gpa perhaps another allocater makes more sense ?
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
-
 const ArrayList = std.ArrayList;
 
 var character_pool_list = ArrayList(u8).init(allocator);
@@ -27,25 +25,24 @@ var p = Params{ .is_special = true, .is_nummeric = true, .is_uppercase = true, .
 
 pub fn main() !void {
     //adding lowercase letter right away since they are not optionals
-    try character_pool_list.appendSlice(letters_lowercase);
-    //freeing memory of the password list, this should be freed either way at the program exit (at least what i think atm)
-
+    character_pool_list.appendSlice(letters_lowercase) catch |err| {
+        try stderr.print("Could not add to the slice {?} ", .{err});
+        return;
+    };
     const params = comptime clap.parseParamsComptime(
         \\-h, --help             Display this help and exit.
         \\-l, --length <INT>     Sets password length, default is 15
         \\-u, --uppercase        Excludes uppercase letters in password generation
         \\-s, --symbols          Excludes special symbols for password generation
         \\-n, --nummeric         Excludes numbers for password generation
-        \\-w, --write            Saves password to a file (maybe defined in .config or passed as arg <STR>)
+        \\-w, --write  <STR>     Saves password to a file (maybe defined in .config or passed as arg <STR>)
     );
 
     const parsers = comptime .{
         .STR = clap.parsers.string,
         .INT = clap.parsers.int(usize, 10),
     };
-    //diagnostic provided by zig-clap, need to improve error handling
-    //(when i get wrong parameter should result in one error, but getting wrong parameter value)
-    //should result in another error (ie, when i get float instead of int for length)
+
     var diag = clap.Diagnostic{};
     var res = clap.parse(clap.Help, &params, parsers, .{
         .diagnostic = &diag,
@@ -54,7 +51,7 @@ pub fn main() !void {
         try stderr.print("You passed invalid character.Use --help to see more info.\n", .{});
         return;
     };
-
+    var key_name: []const u8 = "";
     //matching possible parameters
     if (res.args.help != 0)
         return clap.help(stderr, clap.Help, &params, .{});
@@ -66,11 +63,21 @@ pub fn main() !void {
         p.is_nummeric = false;
     if (res.args.uppercase != 0)
         p.is_uppercase = false;
-    if (res.args.write != 0)
-        print("I will save to file in future with custom name for the password field", .{});
-
     const final_char_pool_list = try passwordCharPool(p.is_uppercase, p.is_special, p.is_nummeric);
     const password = try generatePass(p.password_length, final_char_pool_list);
+    if (res.args.write) |name| {
+        var booer = fs.keyExists(name) catch |err| {
+            print("There was an error opening file! {?}", .{err});
+            return;
+        };
+        if (booer) {
+            print("Key with that name already exists!\n", .{});
+            return;
+        } else {
+            key_name = name;
+            try fs.saveValueUnderKey(key_name, password);
+        }
+    }
 
     //freeing memory
     defer {
@@ -79,9 +86,12 @@ pub fn main() !void {
         allocator.free(final_char_pool_list);
         res.deinit();
         _ = gpa.deinit();
+        defer fs.deinit();
     }
 
     try stdout_writer.print("{s}\n", .{password});
+    // var mt = fs.parseFileForKey() catch "could not open file";
+    // print("{s}", .{mt});
 }
 
 // randomizes password character
@@ -116,9 +126,4 @@ fn passwordCharPool(uppercase: bool, special: bool, numeric: bool) ![]u8 {
         try character_pool_list.appendSlice(letters_uppercase);
     }
     return try character_pool_list.toOwnedSlice();
-}
-
-fn saveToFile() void {
-    // to be implemented, this function should save password under key value file,
-    // perhaps file could be encrypted somehow in the future, (to simulate somewhat of vault behaviour)
 }
