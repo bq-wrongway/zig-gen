@@ -51,6 +51,17 @@ pub fn keyExists(key: []const u8) !bool {
     return pr.keyExists(key);
 }
 
+pub fn printKey(key: []const u8) !void {
+    var file = try std.fs.cwd().openFile("file.ini", .{});
+    defer file.close();
+    const file_content = try file.readToEndAlloc(allocator, std.math.maxInt(u32));
+    defer allocator.free(file_content);
+    var pr = try ini.Parser.parse(file_content, allocator);
+    defer pr.deinit();
+    var key_val = pr.get(key).?;
+    std.debug.print("key iz: {s}\n", .{key_val});
+}
+
 const FileOpenError = error{
     AccessDenied,
     FileNotFount,

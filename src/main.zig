@@ -36,6 +36,7 @@ pub fn main() !void {
         \\-s, --symbols          Excludes special symbols for password generation
         \\-n, --nummeric         Excludes numbers for password generation
         \\-w, --write  <STR>     Saves password to a file (maybe defined in .config or passed as arg <STR>)
+        \\-f, --find  <STR>      Finds and prints out password if it exists
     );
 
     const parsers = comptime .{
@@ -57,6 +58,10 @@ pub fn main() !void {
         return clap.help(stderr, clap.Help, &params, .{});
     if (res.args.symbols != 0)
         p.is_special = false;
+    if (res.args.find) |key| {
+        try fs.printKey(key);
+        return;
+    }
     if (res.args.length) |l|
         p.password_length = @as(u32, @intCast(l));
     if (res.args.nummeric != 0)
@@ -92,6 +97,7 @@ pub fn main() !void {
     try stdout_writer.print("{s}\n", .{password});
     // var mt = fs.parseFileForKey() catch "could not open file";
     // print("{s}", .{mt});
+
 }
 
 // randomizes password character
